@@ -44,6 +44,7 @@ Un ejemplo. Supongamos f con sigma=5. GetMask devolveria un vector de 5
 elementos, que serian: |f(-15,5)|f(-7.5,5)|f(0,5)|f(15,5)|f(7.5,5)|.
 Hay que multiplicar por un factor de normalizacion para que el valor de la
 suma de todos los elementos de la mascara sumen 1.
+
 """
 def getMask(sigma):
 	if(sigma>1):
