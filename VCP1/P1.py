@@ -194,5 +194,7 @@ if __name__=='__main__':
 	imagensmooth=cv2.merge([r,g,b])
 	
 	paintMatrixImages([[imagen,imagensmooth]],[["ORIGINAL","SMOOTH HORIZONTAL"]],"PROBANDOOOO")
+
+	print("Hola")
 	
 	#imagen = cv2.imread("imagenes/marilyn.bmp",3)	
