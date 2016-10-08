@@ -84,8 +84,9 @@ los valores
 def convolution2Vectors(mask,vect):
 	maskPositionZero=len(mask)/2
 
-	result=[0 for i in xrange(len(vect))]
-	
+	#result=[0 for i in xrange(len(vect))]
+	result=np.array([0 for i in xrange(len(vect))])
+
 	startPosition=maskPositionZero
 	finishPosition=len(result)-maskPositionZero
 	
@@ -108,12 +109,14 @@ De lo que se trata es de copiar los bordes ya sea constante a
 cero o con reflejo
 """
 
+
 def createAuxVector(mask,vect,borderType):
 	if(len(mask)<len(vect)): #Forzamos a que la mascara sea menor que el vector
 		maskPositionZero=len(mask)/2
 		
-		result=[0 for i in xrange(len(vect)+(len(mask)-1))]
-		
+		#result=[0 for i in xrange(len(vect)+(len(mask)-1))]
+		result=np.array([0 for i in xrange(len(vect)+(len(mask)-1))])
+
 		startPosition=maskPositionZero
 		finishPosition=len(result)-maskPositionZero
 		
@@ -125,14 +128,25 @@ def createAuxVector(mask,vect,borderType):
 				result[i]=0
 				result[len(result)-(1+i)]=0
 
+		#if(borderType==1): #Borde reflejo
+		#	for i in xrange(0,startPosition):
+		#		result[i]=result[finishPosition-(1+i)]
+		#		result[len(result)-(1+i)]=result[startPosition+i]
+
 		if(borderType==1): #Borde reflejo
 			for i in xrange(0,startPosition):
-				result[i]=result[finishPosition-(1+i)]
-				result[len(result)-(1+i)]=result[startPosition+i]
+				result[i]=result[startPosition+(startPosition-i)]
+				result[len(result)-(1+i)]=result[finishPosition-(startPosition-i)]		
 
 		return result
 	else:
 		raise TypeError, "Mask's length must be smaller than signal length."
+
+
+
+
+
+
 
 
 def loadImage(path):
@@ -153,6 +167,9 @@ def paintMatrixImages(imagematrix,imagetitles,windowtitle="",axis=False):
 	ncol=len(imagematrix[0])
 
 	prefix=int(str(nrow)+str(ncol))
+
+	fig = plt.figure()
+	fig.canvas.set_window_title(windowtitle)
 	
 	for i in xrange(len(imagematrix)):
 		for j in xrange(len(imagematrix[i])):
@@ -165,36 +182,56 @@ def paintMatrixImages(imagematrix,imagetitles,windowtitle="",axis=False):
 
 	plt.show()
 
-plt.show()
+"""
+Por algun motivo, cuando hacemos el vector auxiliar para los bordes,
+la imagen queda en negativo, por lo que es necesario negar el negativo
+para volver al color de origen.
+"""
+def negative(shape):
+	nvector=np.zeros( (len(shape),len(shape[0])) )
+	for i in xrange(len(nvector)):
+		for j in xrange(len(nvector[0])):
+			nvector[i][j]=255-shape[i][j]
+			if(nvector[i][j]<0):
+				print("POLLAS")
+	return nvector
+
 
 if __name__=='__main__':
 	#miVector=[58,42,56,255,12,45,58,12]
-	#miVector=[15,158,254,36,25,85,147,8,235,26,87,21,45,58]
+	#miVector=[[15,158,254,36,25,85,147,8,235,26,87,21,45,58],[15,158,254,36,25,85,147,8,235,26,87,21,45,58]]
 	#mascara=getMask(11)
-	#senialBorde=createAuxVector(mascara,miVector,0)
-	#print(senialBorde)
+	#senialBorde=createAuxVector(mascara,miVector,1)
 	#print(convolution2Vectors(mascara,senialBorde))
 	
-	imagen=loadImage("imagenes/cat.bmp")
+
+
+	imagen=loadImage("imagenes/submarine.bmp")
 	r,g,b=cv2.split(imagen)
-	mascara=getMask(57)
+	mascara=getMask(25)
+
 	
+	senialBordeR=np.zeros(  (len(r),len(r[0])+len(mascara)-1) ) 
+	senialBordeG=np.zeros(  (len(g),len(g[0])+len(mascara)-1) )
+	senialBordeB=np.zeros(  (len(b),len(b[0])+len(mascara)-1) )
+
 	for i in xrange(0,len(r)):
- 		senialBorde=createAuxVector(mascara,r[i],0)
- 		r[i]=convolution2Vectors(mascara,senialBorde)
-	
-	for i in xrange(0,len(g)):
- 		senialBorde=createAuxVector(mascara,g[i],0)
- 		g[i]=convolution2Vectors(mascara,senialBorde)
+ 		senialBordeR[i]=createAuxVector(mascara,r[i],1)
+ 		r[i]=convolution2Vectors(mascara,senialBordeR[i])
+
+ 	for i in xrange(0,len(g)):
+ 		senialBordeG[i]=createAuxVector(mascara,g[i],1)
+ 		g[i]=convolution2Vectors(mascara,senialBordeG[i])
  	
 	for i in xrange(0,len(b)):
- 		senialBorde=createAuxVector(mascara,b[i],0)
- 		b[i]=convolution2Vectors(mascara,senialBorde)
+ 		senialBordeB[i]=createAuxVector(mascara,b[i],1)
+ 		b[i]=convolution2Vectors(mascara,senialBordeB[i])
 	
-	imagensmooth=cv2.merge([r,g,b])
-	
-	paintMatrixImages([[imagen,imagensmooth]],[["ORIGINAL","SMOOTH HORIZONTAL"]],"PROBANDOOOO")
+ 	
 
-	print("Hola")
-	
-	#imagen = cv2.imread("imagenes/marilyn.bmp",3)	
+
+	imagensmooth=cv2.merge([r,g,b])
+	imagenreflect=cv2.merge([negative(senialBordeR),negative(senialBordeG),negative(senialBordeB)])
+	# imagenreflect=cv2.merge([beflect,geflect,reflect])
+	#paintMatrixImages([[imagen,imagensmooth]],[["ORIGINAL","SMOOTH HORIZONTAL"]],"Practica 1 - Vision por computador")
+	paintMatrixImages([[imagen,imagenreflect,imagensmooth]],[["ORIGINAL","REFLECTED","SMOOTH HORIZONTAL"]],"Practica 1 - Vision por computador")
