@@ -144,7 +144,7 @@ def normalize(shape,min,max):
 				nshape[i][j] = ((max-min/(maxvalue-minvalue))*(shape[i][j]-minvalue))
 		return nshape
 	else:
-		raise ValueError, "min value in range must be smaller than max vaue in range."
+		raise ValueError, "min value in range must be smaller than max value in range."
 
 """------------------------------FIN FUNCIONES AUXILIARES------------------------------"""
 
