@@ -128,20 +128,23 @@ La funcion normalize mapea un valor en un intervalo conocido al mismo valor
 medido en un nuevo intervalo.
 """
 
-def normalize(shape):
-	maxvalue=-256
-	minvalue=256
-	nshape=np.zeros( (len(shape),len(shape[0])) )
-	for i in xrange(len(shape)):
-		for j in xrange(len(shape[0])):
-			if(shape[i][j]>maxvalue):
-				maxvalue=shape[i][j]
-			elif(shape[i][j]<minvalue):
-				minvalue=shape[i][j]
-	for i in xrange(len(shape)):
-		for j in xrange(len(shape[0])):
-			nshape[i][j] = ((255/(maxvalue-minvalue))*(shape[i][j]-minvalue))
-	return nshape
+def normalize(shape,min,max):
+	if(min<max):
+		maxvalue=-256
+		minvalue=256
+		nshape=np.zeros( (len(shape),len(shape[0])) )
+		for i in xrange(len(shape)):
+			for j in xrange(len(shape[0])):
+				if(shape[i][j]>maxvalue):
+					maxvalue=shape[i][j]
+				elif(shape[i][j]<minvalue):
+					minvalue=shape[i][j]
+		for i in xrange(len(shape)):
+			for j in xrange(len(shape[0])):
+				nshape[i][j] = ((max-min/(maxvalue-minvalue))*(shape[i][j]-minvalue))
+		return nshape
+	else:
+		raise ValueError, "min value in range must be smaller than max vaue in range."
 
 """------------------------------FIN FUNCIONES AUXILIARES------------------------------"""
 
@@ -364,10 +367,6 @@ def getHighFrequences(image,imageconv,hFfactor):
 	g=hFfactor*g - gconv
 	b=hFfactor*b - bconv
 
-	#r=normalize(r)
-	#g=normalize(g)
-	#b=normalize(b)
-
 	for i in xrange(len(r)):
 		for j in xrange(len(r[0])):
 			if(r[i][j]<0):r[i][j]=0
@@ -389,9 +388,9 @@ def getHybridImage(imageHF,imageLF):
 	rHF,gHF,bHF=cv2.split(imageHF)
 	rLF,gLF,bLF=cv2.split(imageLF)
 
-	rend=np.zeros(  (len(rHF),len(rHF[0])) )
-	gend=np.zeros(  (len(gHF),len(gHF[0])) )
-	bend=np.zeros(  (len(bHF),len(bHF[0])) )
+	#rend=np.zeros(  (len(rHF),len(rHF[0])) )
+	#gend=np.zeros(  (len(gHF),len(gHF[0])) )
+	#bend=np.zeros(  (len(bHF),len(bHF[0])) )
 
 	#for i in xrange(len(rHF)):
 	#	for j in xrange(len(rHF[0])):
@@ -609,11 +608,11 @@ if __name__=='__main__':
 
 #PRUEBA 3: IMAGEN HIBRIDA BICI-MOTO
 	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	print("Construyendo la imagen hibrida Bici-Moto, espere un momento...")
-	showConstructionHybridImage("imagenes/bicycle.bmp","COLOR",0.65,
-								"imagenes/motorcycle.bmp","COLOR",3,
-								1,0)
-	os.system('cls' if os.name == 'nt' else 'clear')
+	#print("Construyendo la imagen hibrida Bici-Moto, espere un momento...")
+	#showConstructionHybridImage("imagenes/bicycle.bmp","COLOR",0.65,
+	#							"imagenes/motorcycle.bmp","COLOR",3,
+	#							1,1)
+	#os.system('cls' if os.name == 'nt' else 'clear')
 
 #PRUEBA 4: IMAGEN HIBRIDA AVION-AVE
 	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
@@ -626,15 +625,15 @@ if __name__=='__main__':
 #PRUEBA 5: IMAGEN HIBRIDA GATO-PERRO
 	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
 	#print("Construyendo la imagen hibrida Gato-Perro, espere un momento...")
-	#showConstructionHybridImage("imagenes/cat.bmp","GRAYSCALE",1.5,
-	#							"imagenes/dog.bmp","GRAYSCALE",6,
+	#showConstructionHybridImage("imagenes/cat.bmp","COLOR",1.5,
+	#							"imagenes/dog.bmp","COLOR",6,
 	#							1,1)
 	#os.system('cls' if os.name == 'nt' else 'clear')
 
 #PRUEBA 6: IMAGEN HIBRIDA SUBMARINO-PEZ
 	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	#print("Construyendo la imagen hibrida Submarino-Pez, espere un momento...")
-	#showConstructionHybridImage("imagenes/submarine.bmp","GRAYSCALE",3.4,
-	#							"imagenes/fish.bmp","GRAYSCALE",1.75,
-	#							1,1)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+	print("Construyendo la imagen hibrida Submarino-Pez, espere un momento...")
+	showConstructionHybridImage("imagenes/submarine.bmp","COLOR",2,
+								"imagenes/fish.bmp","COLOR",6,
+								1,1)
+	os.system('cls' if os.name == 'nt' else 'clear')
