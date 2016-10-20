@@ -73,7 +73,7 @@ su cometido es meramente ilustrativo.
 def fillImage(image,sigma,bordertype):
  	mask=getMask(sigma)
  	lenMask=len(mask)
-	#r,g,b=cv2.split(image)
+	r,g,b=cv2.split(image)
 	nrow=len(r)
 	ncol=len(r[0])
 
@@ -102,11 +102,12 @@ def fillImage(image,sigma,bordertype):
  		senialBordeGV[i]=createAuxVector(mask,senialBordeG[i],bordertype) 		
  		senialBordeBV[i]=createAuxVector(mask,senialBordeB[i],bordertype)
 
-	senialBordeRV=np.transpose(senialBordeRV) 
-	senialBordeGV=np.transpose(senialBordeGV)
-	senialBordeBV=np.transpose(senialBordeBV) 	
- 		
- 	imagereflected=cv2.merge([negative(senialBordeRV),negative(senialBordeGV),negative(senialBordeBV)])
+	senialBordeRV=np.uint8(np.transpose(senialBordeRV)) 
+	senialBordeGV=np.uint8(np.transpose(senialBordeGV))
+	senialBordeBV=np.uint8(np.transpose(senialBordeBV))	
+ 	
+
+ 	imagereflected=cv2.merge([senialBordeRV,senialBordeGV,senialBordeBV])
  	return imagereflected
 
 
@@ -129,20 +130,20 @@ La funcion normalize mapea un valor en un intervalo conocido al mismo valor
 medido en un nuevo intervalo.
 """
 
-def normalize(shape,min,max):
-	if(min<max):
-		maxvalue=-256
-		minvalue=256
-		nshape=np.zeros( (len(shape),len(shape[0])) )
+def normalize(shape,min_v,max_v):
+	if(min_v<max_v):
+		maxvalue=256
+		minvalue=0
+		nshape=np.array([[0]*len(shape[0])]*len(shape))
 		for i in xrange(len(shape)):
 			for j in xrange(len(shape[0])):
 				if(shape[i][j]>maxvalue):
 					maxvalue=shape[i][j]
-				elif(shape[i][j]<minvalue):
+				if(shape[i][j]<minvalue):
 					minvalue=shape[i][j]
 		for i in xrange(len(shape)):
 			for j in xrange(len(shape[0])):
-				nshape[i][j] = ((max-min/(maxvalue-minvalue))*(shape[i][j]-minvalue))
+				nshape[i][j]=(shape[i][j] - minvalue)*(max_v-min_v)/(maxvalue-minvalue) + min_v
 		return nshape
 	else:
 		raise ValueError, "min value in range must be smaller than max value in range."
@@ -219,8 +220,8 @@ def getMask(sigma):
 """2)"""
 
 """
-El primer paso del apartado 2)consiste en hacer los calculos de convolucion en un vector. 
-Coge un vector y una mascara y calcula el filtrado del vector
+La funcion convolution2Vectors
+coge un vector y una mascara y calcula el filtrado del vector
 con respecto de dicha mascara.
 
 El tamaño de la mascara debe ser impar, pues el pixel central
@@ -276,15 +277,17 @@ def createAuxVector(mask,vect,borderType):
 """
 La funcion my_imGaussConvol realiza la convolucion de una imagen.
 Los parametros que se usan son la imagen que se quiere convolucionar,
-la descomposicion en dos valores de la mascara que se usa, la HORIZONTAL
-y la VERTICAL y el tipo de borde: 0 -> borde negro, 1 -> borde reflejo,
-2-> borde copia
-
+el sigma y el tipo de borde: 1 -> borde reflejo,
+2-> borde copia, cualquier otro valor -> borde negro
 """
 
 def my_imGaussConvol(image,sigma,bordertype,only_horizontal=False):
 	mask=getMask(sigma)
 	r,g,b=cv2.split(image)
+	#Trabajamos en modo CV_32FC3 (FLOAT)
+	r=np.float32(r)
+	g=np.float32(g)
+	b=np.float32(b) 
 
 	for i in xrange(len(r)):
  		r[i]=convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype))
@@ -306,8 +309,12 @@ def my_imGaussConvol(image,sigma,bordertype,only_horizontal=False):
    		g=np.transpose(g)
    		b=np.transpose(b)
 #Fin de comentarios
-
- 	return cv2.merge([r,g,b])
+	#Regresamos al modo CV_8UC3 (ENTERO)
+	r=np.uint8(r)
+	g=np.uint8(g)
+	b=np.uint8(b)
+	imgi=cv2.merge([r,g,b]) 
+ 	return imgi
 
 
 """
@@ -317,27 +324,36 @@ la imagen original y obtenemos los detalles (altas frecuencias).
 Se puede aplicar un filtro laplaciano, por lo que se pasa un coeficiente
 laplaciano.
 """
-
 def getHighFrequences(image,imageconv,hFfactor):
 	r,g,b=cv2.split(image)
-	rconv,gconv,bconv=cv2.split(imageconv)
+
+	#Trabajamos en modo CV_32FC3 (CALCULOS EN COMA FLOTANTE)
+	r=np.float32(r)
+	g=np.float32(g)
+	b=np.float32(b) 
 	
-	r=hFfactor*r - rconv
-	g=hFfactor*g - gconv
-	b=hFfactor*b - bconv
+	rc,gc,bc=cv2.split(imageconv)
+	
+	rc=np.float32(rc)
+	gc=np.float32(gc)
+	bc=np.float32(bc)
+	
+	r=hFfactor*r-rc
+	g=hFfactor*g-gc
+	b=hFfactor*b-bc
+	
+	r=normalize(r,0,255)
+	g=normalize(g,0,255)
+	b=normalize(b,0,255)
 
-	for i in xrange(len(r)):
-		for j in xrange(len(r[0])):
-			if(r[i][j]<0):r[i][j]=0
-			if(r[i][j]>255):r[i][j]=255
-			if(g[i][j]<0):g[i][j]=0
-			if(g[i][j]>255):g[i][j]=255
-			if(b[i][j]<0):b[i][j]=0
-			if(b[i][j]>255):b[i][j]=255
-
-	return cv2.merge([r,g,b])
-
-
+	#Regresamos al modo CV_8UC3 (ENTERO)
+	r=np.uint8(r)
+	g=np.uint8(g)
+	b=np.uint8(b)
+	
+	finalimage=cv2.merge([r,g,b])
+	
+	return finalimage
 
 
 
@@ -349,26 +365,22 @@ una imagen correspondiente a las altas frecuencias
 convenientemente.
 """
 def getHybridImage(imageHF,imageLF):
-
-	rHF,gHF,bHF=cv2.split(imageHF)
-	rLF,gLF,bLF=cv2.split(imageLF)
-
-	rend=(rLF+rHF)/2
-	gend=(gLF+gHF)/2
-	bend=(bLF+bHF)/2
-
-	hybridImage=cv2.merge([rend,gend,bend])
-	return hybridImage
+	imghf=np.float32(imageHF)
+	imglf=np.float32(imageLF)
+	hybridImage=(imghf+imglf)/2
+	return np.uint8(hybridImage)
 
 
 
 
 """
 La funcion scaleDownImage se encarga de escalar a mas pequeña
-una imagen 
+una imagen, alisando la imagen y quitando filas y columnas
+alternativamente
 """
 def scaleDownImage(image,sigma,borderType):
 	img=my_imGaussConvol(image,sigma,borderType)
+
 	r,g,b=cv2.split(img)
 
 	nrow=len(r)/2
@@ -376,12 +388,12 @@ def scaleDownImage(image,sigma,borderType):
 
 	
 	for i in xrange(0,nrow):
-		r=np.delete(r,i,0)
+		r=np.delete(r,i,0) #Quitando arrays en el eje x (quitar filas)
 		g=np.delete(g,i,0)
 		b=np.delete(b,i,0)
 
 	for i in xrange(0,ncol):
-		r=np.delete(r,i,1)
+		r=np.delete(r,i,1) #Quitando arrays en el eje y (quitar columnas)
 		g=np.delete(g,i,1)
 		b=np.delete(b,i,1)
 
@@ -390,59 +402,7 @@ def scaleDownImage(image,sigma,borderType):
 
 
 
-def showPyramid5(imagen,windowtitle,sigma,border):
-	
-	fig = plt.figure()
-	fig.canvas.set_window_title(windowtitle)
-	
-	nrow=len(imagen)
-	ncol=len(imagen[0])
-	
-	ax1=plt.subplot2grid((nrow,ncol+ncol/2), (0,0), rowspan=nrow,colspan=ncol)
-	plt.xticks([]),plt.yticks([])
-	plt.imshow(imagen)
-	
-	i=0
-	rowini=i
-	row_span=nrow/2**(i+1)
-	col_span=nrow/2**(i+1)
 
-	img1=scaleDownImage(imagen,sigma+i,border)	
-	ax2 = plt.subplot2grid((nrow,ncol+ncol/2), (0,ncol), rowspan=row_span,colspan=col_span)
-	plt.xticks([]),plt.yticks([])
-	plt.imshow(imagen)
-	
-	i=1
-	rowini+=row_span
-	row_span=nrow/2**(i+1)
-	col_span=nrow/2**(i+1)
-
-	img2=scaleDownImage(img1,sigma,border)
-	ax3 = plt.subplot2grid((nrow,ncol+ncol/2), (rowini, ncol), rowspan=row_span, colspan=col_span)
-	plt.xticks([]),plt.yticks([])
-	plt.imshow(img2)
-	
-	i=2
-	rowini+=row_span
-	row_span=nrow/2**(i+1)
-	col_span=nrow/2**(i+1)
-
-	img3=scaleDownImage(img2,sigma,border)
-	ax4 = plt.subplot2grid((nrow,ncol+ncol/2), (rowini, ncol), rowspan=row_span, colspan=row_span)
-	plt.xticks([]),plt.yticks([])
-	plt.imshow(img3)
-
-	i=3
-	rowini+=row_span
-	row_span=nrow/2**(i+1)
-	col_span=nrow/2**(i+1)
-
-	img4=scaleDownImage(img3,sigma,border)
-	ax5 = plt.subplot2grid((nrow,ncol+ncol/2), (rowini, ncol), rowspan=row_span, colspan=col_span)
-	plt.xticks([]),plt.yticks([])
-	plt.imshow(img3)
-
-	plt.show()
 
 
 
@@ -450,6 +410,10 @@ def showPyramid5(imagen,windowtitle,sigma,border):
 
 
 """------------FUNCIONES PARA MOSTRAR LOS DIFERENTES APARTADOS------------"""
+
+"""
+Muestra todos los bordes posibles para calcular el alisado.
+"""
 def showAllBorders(ruta,color,sigma):
 	imagen=loadImage(ruta,color)
 	im0=fillImage(imagen,sigma,0)
@@ -459,13 +423,16 @@ def showAllBorders(ruta,color,sigma):
 	print("Esta viendo los diferentes rellenos de imagen para poder filtrar, cierre la ventana para continuar.")
 
 	paintMatrixImages(
-		[[imagen,im0,im1,im2]],
-		[["ORIGINAL","BLACK PADDING","REFLECT","UNIFORM COPY"]],
+		[[imagen,im0],[im1,im2]],
+		[["ORIGINAL","UNIFORM 0"],["REFLECT","UNIFORM COPY"]],
 		"Practica 1 - Vision por computador - Jose Carlos Martinez Velazquez"
 	)
 
 
 
+"""
+Muestra todo el proceso de construccion de un alisado.
+"""
 def showSmoothedImage(ruta,color,sigma,border):
 	imagen=loadImage(ruta,color)
 	
@@ -499,7 +466,9 @@ def showSmoothedImage(ruta,color,sigma,border):
 
 
 
-
+"""
+Muestra solo la imagen de altas frecuencias, la de bajas frecuencias y la imagen hibrida.
+"""
 def showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,
 								rutaBajas,colorBajas,sigmaBajas,
 								factorLaplaciano,border):
@@ -510,6 +479,37 @@ def showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,
 	imconv=my_imGaussConvol(imagenAltas,sigmaAltas,border)
 	imAltas=getHighFrequences(imagenAltas,imconv,factorLaplaciano)
 
+	imBajas=my_imGaussConvol(imagenBajas,sigmaBajas,border)
+
+	hybridimage=getHybridImage(imAltas,imBajas)
+
+	print("Esta viendo el proceso de construccion de la imagen hibrida, cierre la ventana para continuar.")
+
+	paintMatrixImages(
+		[[imAltas,imBajas,hybridimage]],
+		[["Hi-FREQUENCES","Lo-FREQUENCES","HYBRID IMAGE"]],
+		"Practica 1 - Vision por computador"
+	)
+
+	return hybridimage
+
+
+
+
+
+"""
+Muestra el proceso completo de calculo de altas frecuencias, bajas frecuencias e
+imagen hibrida, a continuacion muestra la imagen hibrida sola.
+"""
+def showConstructionHybridImage2(rutaAltas,colorAltas,sigmaAltas,
+								rutaBajas,colorBajas,sigmaBajas,
+								factorLaplaciano,border):
+
+	imagenAltas=loadImage(rutaAltas,colorAltas)
+	imagenBajas=loadImage(rutaBajas,colorBajas)
+
+	imconv=my_imGaussConvol(imagenAltas,sigmaAltas,border)
+	imAltas=getHighFrequences(imagenAltas,imconv,factorLaplaciano)
 
 	imBajas=my_imGaussConvol(imagenBajas,sigmaBajas,border)
 
@@ -528,10 +528,55 @@ def showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,
 	paintMatrixImages(
 		[[hybridimage]],
 		[["HYBRID IMAGE"]],
-		"Practica 1 - Vision por computador -  - Jose Carlos Martinez Velazquez"
+		"Practica 1 - Vision por computador - Jose Carlos Martinez Velazquez"
 	)
 
 	return hybridimage
+
+
+
+"""
+Calcula y pinta la piramide gaussiana de una imagen a level niveles
+"""
+def showPyramid(imagen,windowtitle,sigma,border,level):
+	nrow=len(imagen)
+	ncol=len(imagen[0])
+	
+	min_size=min(nrow,ncol)
+	
+	if(level<math.log(min_size,2)):
+		fig = plt.figure()
+		fig.canvas.set_window_title(windowtitle)
+		
+		ax1=plt.subplot2grid((nrow,ncol+ncol/2), (0,0), rowspan=nrow,colspan=ncol)
+		plt.xticks([]),plt.yticks([])
+		plt.imshow(imagen)
+		
+		i=0
+		rowini=i
+		row_span=nrow/2**(i+1)
+		col_span=ncol/2**(i+1)
+
+		img1=scaleDownImage(imagen,sigma,border)	
+		ax2 = plt.subplot2grid((nrow,ncol+ncol/2), (rowini,ncol), rowspan=row_span,colspan=col_span)
+		plt.xticks([]),plt.yticks([])
+		plt.imshow(img1)
+
+		for i in xrange(1,level-1):
+			rowini+=row_span
+			row_span=nrow/2**(i+1)
+			col_span=ncol/2**(i+1)
+
+			imgbucle=scaleDownImage(img1,sigma,border)
+			plt.subplot2grid((nrow,ncol+ncol/2), (rowini, ncol), rowspan=row_span, colspan=col_span)
+			plt.xticks([]),plt.yticks([])
+			plt.imshow(imgbucle)
+		
+			img1=imgbucle
+		print("Esta viendo la piramide gaussiana, cierre la ventana para continuar.")
+		plt.show()
+	else:
+		raise ValueError, "Image cannot be scaled down more than "+math.log(min_size,2)+" times."
 
 """-----------------------------------------------------------------------"""
 
@@ -545,80 +590,117 @@ def showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__=='__main__':
-	# os.system('cls' if os.name == 'nt' else 'clear')
-
-
 #PRUEBA 0: MOSTRAR LOS DIFERENTES TIPOS DE RELLENO
-	#print("A continuacion se mostraran los diferentes tipos de relleno para poder filtrar, espere un momento...")
-	#showAllBorders("imagenes/motorcycle.bmp","COLOR",10)
+	# print("A continuacion se mostraran los diferentes tipos de relleno para poder filtrar, espere un momento...")
+	# showAllBorders("imagenes/motorcycle.bmp","COLOR",20)
 
-#PRUEBA 1: MOSTRAR UNA IMAGEN CONVOLUCIONADA SOLO EN HORIZONTAL Y COMPLETAMENTE
-	#print("A continuacion se mostrara el proceso de construccion del suavizado, espere un momento...")
-	#showSmoothedImage("imagenes/cat.bmp","COLOR",7,0)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+#PRUEBA 1a: MOSTRAR LA CONVOLUCION SOLO EN HORIZONTAL PARA CADA TIPO DE BORDE
+	# print("Aplicando convolucion horizontal")
+	# image1=loadImage("imagenes/cat.bmp","COLOR")
+	# imageborded1=fillImage(image1,7,0)
+	# imagesmoothed1=my_imGaussConvol(image1,7,0,True)
+	# imageborded2=fillImage(image1,7,1)
+	# imagesmoothed2=my_imGaussConvol(image1,7,1,True)
+	# imageborded3=fillImage(image1,7,2)
+	# imagesmoothed3=my_imGaussConvol(image1,7,2,True)
+	# paintMatrixImages(
+	# 	[[imageborded1,imagesmoothed1],[imageborded2,imagesmoothed3],[imageborded3,imagesmoothed2]],
+	# 	[["UNIFORM 0","SMOOTH_U0"],["REFLECT","SMOOTH_UC"],["UNIFORM COPY","SMOOTH_REF"] ],
+	#  	"Practica 1 - Vision por computador - Jose Carlos Martinez Velazquez"
+	# )
 
-#PRUEBA 2 IMAGEN HIBRIDA EINSTEIN-MARILYN
-	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	#print("Construyendo la imagen hibrida Einstein-Marilyn, espere un momento...")
-	#hybrid1=showConstructionHybridImage("imagenes/einstein.bmp","GRAYSCALE",1.5,
-	#							"imagenes/marilyn.bmp","GRAYSCALE",3,
-	#							1,1)
-	#print("Construyendo la piramide gaussiana Einstein-Marilyn, espere un momento...")
-	#showPyramid5(hybrid1,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+#PRUEBA 1c: MOSTRAR IMAGEN COMPLETAMENTE CONVOLUCIONADA
+	# print("Aplicando convolucion completa")
+	# image1=loadImage("imagenes/cat.bmp","COLOR")
+	# imageborded1=fillImage(image1,7,0)
+	# imagesmoothed1=my_imGaussConvol(image1,7,0,False)
+	# imageborded2=fillImage(image1,7,1)
+	# imagesmoothed2=my_imGaussConvol(image1,7,1,False)
+	# imageborded3=fillImage(image1,7,2)
+	# imagesmoothed3=my_imGaussConvol(image1,7,2,False)
+	# paintMatrixImages(
+	# 	[[imageborded1,imagesmoothed1],[imageborded2,imagesmoothed3],[imageborded3,imagesmoothed2]],
+	# 	[["UNIFORM 0","SMOOTH_U0"],["REFLECT","SMOOTH_UC"],["UNIFORM COPY","SMOOTH_REF"] ],
+	# 	"Practica 1 - Vision por computador - Jose Carlos Martinez Velazquez"
+	# )
+
+
+#PRUEBA 1c: MOSTRAR LA IMAGEN EN ALTAS FRECUENCIAS
+	# print("A continuacion se mostrara el proceso de construccion de una imagen a altas frecuencias, espere un momento...")
+	# imagen=loadImage("imagenes/motorcycle.bmp","GRAYSCALE")
+	# smoothed=my_imGaussConvol(imagen,2,1)
+	# imagenhf=getHighFrequences(imagen,smoothed,1)
+	# paintMatrixImages(
+	# 	[[imagen,smoothed,imagenhf]],
+	# 	[["ORIGINAL","SMOOTHED","Hi-FREQUENCES"]],
+	# 	"Practica 1 - Vision por computador - Jose Carlos Martinez Velazquez"
+	# )
+
+
+
+
+#APARTADO A.1)
+	print("APARTADO A.1)")
+	print("A continuacion vamos a ver la mascara normalizada con sigma=2")
+	print(getMask(2))
+	raw_input("Pulse intro para continuar...")
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+#APARTADO A.2 y A.3: MOSTRAR UNA IMAGEN CONVOLUCIONADA SOLO EN HORIZONTAL Y COMPLETAMENTE
+ 	print("APARTADO A.2 y A.3)")
+ 	print("A continuacion se mostrara el proceso de construccion del suavizado, espere un momento...")
+ 	showSmoothedImage("imagenes/motorcycle.bmp","COLOR",7,1)
+ 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+	
+#APARTADO B+C) 1 IMAGEN HIBRIDA EINSTEIN-MARILYN
+ 	print("APARTADO B+C) 1")
+ 	print("Construyendo la imagen hibrida Einstein-Marilyn, espere un momento...")
+ 	hybrid1=showConstructionHybridImage("imagenes/einstein.bmp","GRAYSCALE",1.8,
+ 								"imagenes/marilyn.bmp","GRAYSCALE",6,
+ 								1,1)
+ 	print("Construyendo la piramide gaussiana Einstein-Marilyn, espere un momento...")
+ 	showPyramid(hybrid1,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+ 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
 	
 
-#PRUEBA 3: IMAGEN HIBRIDA BICI-MOTO
-	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	#print("Construyendo la imagen hibrida Bici-Moto, espere un momento...")
-	#hybrid2=showConstructionHybridImage("imagenes/bicycle.bmp","COLOR",1.3,
-	#							"imagenes/motorcycle.bmp","COLOR",3,
-	#							1,1)
-	#print("Construyendo la piramide gaussiana Bici-Moto, espere un momento...")
-	#showPyramid5(hybrid2,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+#APARTADO B+C) 2 IMAGEN HIBRIDA BICI-MOTO
+ 	print("APARTADO B+C) 2")
+ 	print("Construyendo la imagen hibrida Bici-Moto, espere un momento...")
+ 	hybrid2=showConstructionHybridImage("imagenes/bicycle.bmp","COLOR",1.2,
+ 								"imagenes/motorcycle.bmp","COLOR",10,
+ 								1,1)
+	print("Construyendo la piramide gaussiana Bici-Moto, espere un momento...")
+	showPyramid(hybrid2,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
 
-#PRUEBA 4: IMAGEN HIBRIDA AVION-AVE
-	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	#print("Construyendo la imagen hibrida Avion-Ave, espere un momento...")
-	#hybrid3=showConstructionHybridImage("imagenes/plane.bmp","COLOR",1.5, #Tambien funciona con 0.85
-	#							"imagenes/bird.bmp","COLOR",3, #Tambien funciona con 2.2, 2.7 y 3.5
-	#								1,1)
-	#print("Construyendo la piramide gaussiana Avion-Ave, espere un momento...")
-	#showPyramid5(hybrid3,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+#APARTADO B+C) 3 IMAGEN HIBRIDA AVION-AVE
+	print("APARTADO B+C) 3")
+	print("Construyendo la imagen hibrida Avion-Ave, espere un momento...")
+	hybrid3=showConstructionHybridImage("imagenes/plane.bmp","GRAYSCALE",1.7,
+								"imagenes/bird.bmp","GRAYSCALE",8,
+									1,1)
+	print("Construyendo la piramide gaussiana Avion-Ave, espere un momento...")
+	showPyramid(hybrid3,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
 
-#PRUEBA 5: IMAGEN HIBRIDA GATO-PERRO
-	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	#print("Construyendo la imagen hibrida Gato-Perro, espere un momento...")
-	#hybrid4=showConstructionHybridImage("imagenes/cat.bmp","COLOR",3,
-	#							"imagenes/dog.bmp","COLOR",6,
-	#							1,1)
-	#print("Construyendo la piramide gaussiana Gato-Perro, espere un momento...")
-	#showPyramid5(hybrid4,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+#PAPARTADO B+C) 4 IMAGEN HIBRIDA GATO-PERRO
+ 	print("APARTADO B+C) 4")
+ 	print("Construyendo la imagen hibrida Gato-Perro, espere un momento...")
+ 	hybrid4=showConstructionHybridImage("imagenes/cat.bmp","COLOR",2.5,
+ 								"imagenes/dog.bmp","COLOR",10,
+ 								1.1,1)
+ 	print("Construyendo la piramide gaussiana Gato-Perro, espere un momento...")
+ 	showPyramid(hybrid4,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+ 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
 
-#PRUEBA 6: IMAGEN HIBRIDA SUBMARINO-PEZ
-	#showConstructionHybridImage(rutaAltas,colorAltas,sigmaAltas,rutaBajas,colorBajas,sigmaBajas,factorLaplaciano,border):
-	#print("Construyendo la imagen hibrida Submarino-Pez, espere un momento...")
-	#hybrid5=showConstructionHybridImage("imagenes/submarine.bmp","COLOR",3,
-	#							"imagenes/fish.bmp","COLOR",6,
-	#							1,1)
-	#print("Construyendo la piramide gaussiana Submarino-Pez, espere un momento...")
-	#showPyramid5(hybrid5,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1)
-	#os.system('cls' if os.name == 'nt' else 'clear')
+#APARTADO B+C) 5 IMAGEN HIBRIDA SUBMARINO-PEZ
+	print("APARTADO B+C) 5")
+	print("Construyendo la imagen hibrida Submarino-Pez, espere un momento...")
+	hybrid5=showConstructionHybridImage("imagenes/submarine.bmp","COLOR",2,
+								"imagenes/fish.bmp","COLOR",8,
+								1,1)
+	print("Construyendo la piramide gaussiana Submarino-Pez, espere un momento...")
+	showPyramid(hybrid5,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
