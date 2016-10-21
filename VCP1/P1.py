@@ -245,9 +245,9 @@ def convolution2Vectors(mask,vect):	#ESTA VERSION TARDA LA MITAD QUE LA ANTERIOR
 
 
 """
-La funcion createAuxVector corresponde al segundo paso del apartado 2).
-De lo que se trata es de copiar los bordes ya sea constante a
-cero o con reflejo o copia del ultimo pixel.
+La funcion createAuxVector rellena los extremos del vector senial
+con los bordes constante a cero, con reflejo o copia del ultimo pixel
+o reflejado.
 """
 
 def createAuxVector(mask,vect,borderType):
@@ -259,13 +259,13 @@ def createAuxVector(mask,vect,borderType):
 	#if(borderType==0): #Borde a ceros
 
 	if(borderType==1): #Borde reflejo
-		result[0:startPosition]=result[2*startPosition:startPosition:-1]
-		result[finishPosition:-1]=result[finishPosition-1:finishPosition-startPosition:-1]
+		result[0:startPosition]=result[2*startPosition-1:startPosition-1:-1]
+		result[finishPosition:len(result)]=result[finishPosition-1:finishPosition-startPosition-1:-1]
 		
 
 	elif(borderType==2): #Borde copia
 		result[0:startPosition]=result[startPosition]
-		result[finishPosition:-1]=result[finishPosition-1]
+		result[finishPosition:len(result)]=result[finishPosition-1]
 
 	return result
 
@@ -544,7 +544,7 @@ def showPyramid(imagen,windowtitle,sigma,border,level):
 	
 	min_size=min(nrow,ncol)
 	
-	if(level<math.log(min_size,2)):
+	if(level<int(math.log(min_size,2))):
 		fig = plt.figure()
 		fig.canvas.set_window_title(windowtitle)
 		
@@ -576,7 +576,7 @@ def showPyramid(imagen,windowtitle,sigma,border,level):
 		print("Esta viendo la piramide gaussiana, cierre la ventana para continuar.")
 		plt.show()
 	else:
-		raise ValueError, "Image cannot be scaled down more than "+math.log(min_size,2)+" times."
+		raise ValueError, "Image cannot be scaled down more than "+int(math.log(min_size,2))+" times."
 
 """-----------------------------------------------------------------------"""
 
@@ -591,7 +591,116 @@ def showPyramid(imagen,windowtitle,sigma,border,level):
 
 
 if __name__=='__main__':
-#PRUEBA 0: MOSTRAR LOS DIFERENTES TIPOS DE RELLENO
+#APARTADO A.1) MUESTRA DEL CALCULO DE LA MASCARA
+	print("APARTADO A.1)")
+	print("A continuacion vamos a ver la mascara normalizada con sigma=2")
+	print(getMask(2))
+	raw_input("Pulse intro para continuar...")
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+#APARTADO A.2 y A.3: CONVOLUCION DE VECTORES + FUNCIONAMIENTO EN IMAGENES
+	print("APARTADO A.2\n")
+	
+	print("\tAPARTADO A.2.1)")
+	print("\tA continuacion se mostrara el resultado de convolucion 1D solo donde fue posible el calculo.")
+	mask=getMask(1)
+	senial=[1,2,3,4,5,6,7,8,9]
+	print("\tsignal:\t"+str(senial))
+	print("\tmask:\t"+str(mask))
+	print("")
+	print("\tresult:\t"+str(convolution2Vectors(mask,senial)))
+	raw_input("Pulse intro para continuar...")
+
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+	print("\tAPARTADO A.2.2)")
+	print("\tA continuacion se mostrara el vector auxiliar segun el tipo de borde.")
+	print("\tsignal:\t"+str(senial))
+	print("\tmask:\t"+str(mask))
+	print("")
+	print("\tBorde negro:\t"+str(createAuxVector(mask,senial,0)))
+	print("\tReflejo:\t"+str(createAuxVector(mask,senial,1)))
+	print("\tPrimer y ultimo pixel:\t"+str(createAuxVector(mask,senial,2)))
+	raw_input("Pulse intro para continuar...")
+ 	
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+	print("\tAPARTADO A.2.3)")
+	print("\tA continuacion se mostrara el calculo de la convolucion para diferentes rellenos.")
+	print("\tsignal:\t"+str(senial))
+	print("\tmask:\t"+str(mask))
+	print("")
+	print("\tSignal borde negro:\t"+str(createAuxVector(mask,senial,0)))
+	print("\tSignal reflejo:\t"+str(createAuxVector(mask,senial,1)))
+	print("\tSignal primer y ultimo pixel:\t"+str(createAuxVector(mask,senial,2)))
+	print("")
+	print("\tConvolucion 1D borde negro:\t"+str(convolution2Vectors(mask,createAuxVector(mask,senial,0))))
+	print("\tConvolucion 1D reflejo:\t"+str(convolution2Vectors(mask,createAuxVector(mask,senial,1))))
+	print("\tConvolucion 1D primer y ultimo pixel:\t"+str(convolution2Vectors(mask,createAuxVector(mask,senial,2))))
+	raw_input("Pulse intro para continuar...")
+
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+ 	
+	print("APARTADO A.3\n")
+
+ 	print("A continuacion se mostrara el proceso de construccion del suavizado, espere un momento...")
+ 	showSmoothedImage("imagenes/motorcycle.bmp","COLOR",7,1)
+ 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+	
+#APARTADO B+C) 1 IMAGEN HIBRIDA EINSTEIN-MARILYN + PIRAMIDE
+ 	print("APARTADO B+C) 1")
+ 	print("Construyendo la imagen hibrida Einstein-Marilyn, espere un momento...")
+ 	hybrid1=showConstructionHybridImage("imagenes/einstein.bmp","GRAYSCALE",1.8,
+ 								"imagenes/marilyn.bmp","GRAYSCALE",6,
+ 								1,1)
+ 	print("Construyendo la piramide gaussiana Einstein-Marilyn, espere un momento...")
+ 	showPyramid(hybrid1,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+ 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+	
+
+#APARTADO B+C) 2 IMAGEN HIBRIDA BICI-MOTO + PIRAMIDE
+ 	print("APARTADO B+C) 2")
+ 	print("Construyendo la imagen hibrida Bici-Moto, espere un momento...")
+ 	hybrid2=showConstructionHybridImage("imagenes/bicycle.bmp","COLOR",1.2,
+ 								"imagenes/motorcycle.bmp","COLOR",10,
+ 								1,1)
+	print("Construyendo la piramide gaussiana Bici-Moto, espere un momento...")
+	showPyramid(hybrid2,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+#APARTADO B+C) 3 IMAGEN HIBRIDA AVION-AVE + PIRAMIDE
+	print("APARTADO B+C) 3")
+	print("Construyendo la imagen hibrida Avion-Ave, espere un momento...")
+	hybrid3=showConstructionHybridImage("imagenes/plane.bmp","GRAYSCALE",1.7,
+								"imagenes/bird.bmp","GRAYSCALE",8,
+									1,1)
+	print("Construyendo la piramide gaussiana Avion-Ave, espere un momento...")
+	showPyramid(hybrid3,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+#PAPARTADO B+C) 4 IMAGEN HIBRIDA GATO-PERRO + PIRAMIDE
+ 	print("APARTADO B+C) 4")
+ 	print("Construyendo la imagen hibrida Gato-Perro, espere un momento...")
+ 	hybrid4=showConstructionHybridImage("imagenes/cat.bmp","COLOR",2.5,
+ 								"imagenes/dog.bmp","COLOR",10,
+ 								1.1,1)
+ 	print("Construyendo la piramide gaussiana Gato-Perro, espere un momento...")
+ 	showPyramid(hybrid4,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+ 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+#APARTADO B+C) 5 IMAGEN HIBRIDA SUBMARINO-PEZ + PIRAMIDE
+	print("APARTADO B+C) 5")
+	print("Construyendo la imagen hibrida Submarino-Pez, espere un momento...")
+	hybrid5=showConstructionHybridImage("imagenes/submarine.bmp","COLOR",2,
+								"imagenes/fish.bmp","COLOR",8,
+								1,1)
+	print("Construyendo la piramide gaussiana Submarino-Pez, espere un momento...")
+	showPyramid(hybrid5,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
+	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
+
+
+	#PRUEBA 0: MOSTRAR LOS DIFERENTES TIPOS DE RELLENO
 	# print("A continuacion se mostraran los diferentes tipos de relleno para poder filtrar, espere un momento...")
 	# showAllBorders("imagenes/motorcycle.bmp","COLOR",20)
 
@@ -636,71 +745,3 @@ if __name__=='__main__':
 	# 	[["ORIGINAL","SMOOTHED","Hi-FREQUENCES"]],
 	# 	"Practica 1 - Vision por computador - Jose Carlos Martinez Velazquez"
 	# )
-
-
-
-
-#APARTADO A.1)
-	print("APARTADO A.1)")
-	print("A continuacion vamos a ver la mascara normalizada con sigma=2")
-	print(getMask(2))
-	raw_input("Pulse intro para continuar...")
-	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
-
-#APARTADO A.2 y A.3: MOSTRAR UNA IMAGEN CONVOLUCIONADA SOLO EN HORIZONTAL Y COMPLETAMENTE
- 	print("APARTADO A.2 y A.3)")
- 	print("A continuacion se mostrara el proceso de construccion del suavizado, espere un momento...")
- 	showSmoothedImage("imagenes/motorcycle.bmp","COLOR",7,1)
- 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
-
-	
-#APARTADO B+C) 1 IMAGEN HIBRIDA EINSTEIN-MARILYN
- 	print("APARTADO B+C) 1")
- 	print("Construyendo la imagen hibrida Einstein-Marilyn, espere un momento...")
- 	hybrid1=showConstructionHybridImage("imagenes/einstein.bmp","GRAYSCALE",1.8,
- 								"imagenes/marilyn.bmp","GRAYSCALE",6,
- 								1,1)
- 	print("Construyendo la piramide gaussiana Einstein-Marilyn, espere un momento...")
- 	showPyramid(hybrid1,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
- 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
-	
-
-#APARTADO B+C) 2 IMAGEN HIBRIDA BICI-MOTO
- 	print("APARTADO B+C) 2")
- 	print("Construyendo la imagen hibrida Bici-Moto, espere un momento...")
- 	hybrid2=showConstructionHybridImage("imagenes/bicycle.bmp","COLOR",1.2,
- 								"imagenes/motorcycle.bmp","COLOR",10,
- 								1,1)
-	print("Construyendo la piramide gaussiana Bici-Moto, espere un momento...")
-	showPyramid(hybrid2,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
-	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
-
-#APARTADO B+C) 3 IMAGEN HIBRIDA AVION-AVE
-	print("APARTADO B+C) 3")
-	print("Construyendo la imagen hibrida Avion-Ave, espere un momento...")
-	hybrid3=showConstructionHybridImage("imagenes/plane.bmp","GRAYSCALE",1.7,
-								"imagenes/bird.bmp","GRAYSCALE",8,
-									1,1)
-	print("Construyendo la piramide gaussiana Avion-Ave, espere un momento...")
-	showPyramid(hybrid3,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
-	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
-
-#PAPARTADO B+C) 4 IMAGEN HIBRIDA GATO-PERRO
- 	print("APARTADO B+C) 4")
- 	print("Construyendo la imagen hibrida Gato-Perro, espere un momento...")
- 	hybrid4=showConstructionHybridImage("imagenes/cat.bmp","COLOR",2.5,
- 								"imagenes/dog.bmp","COLOR",10,
- 								1.1,1)
- 	print("Construyendo la piramide gaussiana Gato-Perro, espere un momento...")
- 	showPyramid(hybrid4,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
- 	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")
-
-#APARTADO B+C) 5 IMAGEN HIBRIDA SUBMARINO-PEZ
-	print("APARTADO B+C) 5")
-	print("Construyendo la imagen hibrida Submarino-Pez, espere un momento...")
-	hybrid5=showConstructionHybridImage("imagenes/submarine.bmp","COLOR",2,
-								"imagenes/fish.bmp","COLOR",8,
-								1,1)
-	print("Construyendo la piramide gaussiana Submarino-Pez, espere un momento...")
-	showPyramid(hybrid5,"Piramide Gaussiana - Vision por computador - Jose Carlos Martinez Velazquez",1,1,5)
-	print("-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.")

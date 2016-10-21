@@ -200,25 +200,29 @@ Esta función se llamará mediante la sentencia `createAuxVector(mask,vect,borde
 
 ```{python, echo=T, eval=F}
 """
-La funcion createAuxVector corresponde al segundo paso del apartado 2).
-De lo que se trata es de copiar los bordes ya sea constante a
-cero o con reflejo o copia del ultimo pixel.
+La funcion createAuxVector rellena los extremos del vector senial
+con los bordes constante a cero, con reflejo o copia del ultimo pixel
+o reflejado.
 """
+
 def createAuxVector(mask,vect,borderType):
 	result=np.array([0 for i in xrange(len(vect)+(len(mask)-1))])
 	startPosition=len(mask)/2
 	finishPosition=len(result)-startPosition
 	result[startPosition:finishPosition]=vect
 
-	#if(borderType==0): #Borde a ceros -> esta comentado porque no se haria nada
+	#if(borderType==0): #Borde a ceros
 
 	if(borderType==1): #Borde reflejo
-		result[0:startPosition]=result[2*startPosition:startPosition:-1]
-		result[finishPosition:-1]=result[finishPosition-1:finishPosition-startPosition:-1]
+		result[0:startPosition]=
+		      result[2*startPosition-1:startPosition-1:-1]
 		
+		result[finishPosition:len(result)]=
+		      result[finishPosition-1:finishPosition-startPosition-1:-1]
+
 	elif(borderType==2): #Borde copia
 		result[0:startPosition]=result[startPosition]
-		result[finishPosition:-1]=result[finishPosition-1]
+		result[finishPosition:len(result)]=result[finishPosition-1]
 
 	return result
 ```
@@ -298,6 +302,8 @@ def my_imGaussConvol(image,sigma,bordertype):
 	imgi=cv2.merge([r,g,b]) 
  	return imgi
 ```
+
+Fijémonos cómo para cambiar el tipo que contiene cada capa usamos `np.uint8()` o `np.float32()` esto es porque OpenCV en Python usa como tipo de dato para las imágenes arrays multidimensionales de la biblioteca `numpy`. Yo he importado el paquete con la línea `import numpy as np` y por eso todas las llamadas a funciones de esta biblioteca tienen el prefijo `np.`. 
 
 #B) Imágenes híbridas. Usar la función que hemos implementado en el apartado A para elegir los sigmas más adecuados para la selección de frecuencias en parejas de imágenes.
 
@@ -592,7 +598,7 @@ def showPyramid(imagen,windowtitle,sigma,border,level):
 	
 	min_size=min(nrow,ncol)
 	
-	if(level<math.log(min_size,2)):
+	if(level<int(math.log(min_size,2))):
 		fig = plt.figure()
 		fig.canvas.set_window_title(windowtitle)
 		
@@ -628,7 +634,7 @@ def showPyramid(imagen,windowtitle,sigma,border,level):
 		plt.show()
 	else:
 		raise ValueError, 
-		  "Image cannot be scaled down more than "+math.log(min_size,2)+" times."
+		  "Image cannot be scaled down more than "+int(math.log(min_size,2))+" times."
 ```
 
 
