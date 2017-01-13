@@ -281,6 +281,41 @@ el sigma y el tipo de borde: 1 -> borde reflejo,
 2-> borde copia, cualquier otro valor -> borde negro
 """
 
+# def my_imGaussConvol(image,sigma,bordertype,only_horizontal=False):
+# 	mask=getMask(sigma)
+# 	r,g,b=cv2.split(image)
+# 	#Trabajamos en modo CV_32FC3 (FLOAT)
+# 	r=np.float32(r)
+# 	g=np.float32(g)
+# 	b=np.float32(b) 
+
+# 	for i in xrange(len(r)):
+#  		r[i]=convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype))
+#  		g[i]=convolution2Vectors(mask,createAuxVector(mask,g[i],bordertype))
+#  		b[i]=convolution2Vectors(mask,createAuxVector(mask,b[i],bordertype))
+
+# #Comentar a partir de aqui para ver la diferencia entre solo horizontal y vertical tambien
+# 	if(not only_horizontal):
+# 	 	r=np.transpose(r)
+# 	 	g=np.transpose(g)
+# 	 	b=np.transpose(b)
+
+# 	   	for i in xrange(len(r)):
+#   			r[i]=convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype))
+#   			g[i]=convolution2Vectors(mask,createAuxVector(mask,g[i],bordertype))
+#   			b[i]=convolution2Vectors(mask,createAuxVector(mask,b[i],bordertype))
+	 
+#    		r=np.transpose(r)
+#    		g=np.transpose(g)
+#    		b=np.transpose(b)
+# #Fin de comentarios
+# 	#Regresamos al modo CV_8UC3 (ENTERO)
+# 	r=np.uint8(r)
+# 	g=np.uint8(g)
+# 	b=np.uint8(b)
+# 	imgi=cv2.merge([r,g,b]) 
+#  	return imgi
+
 def my_imGaussConvol(image,sigma,bordertype,only_horizontal=False):
 	mask=getMask(sigma)
 	r,g,b=cv2.split(image)
@@ -289,25 +324,13 @@ def my_imGaussConvol(image,sigma,bordertype,only_horizontal=False):
 	g=np.float32(g)
 	b=np.float32(b) 
 
-	for i in xrange(len(r)):
- 		r[i]=convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype))
- 		g[i]=convolution2Vectors(mask,createAuxVector(mask,g[i],bordertype))
- 		b[i]=convolution2Vectors(mask,createAuxVector(mask,b[i],bordertype))
+	r=np.transpose([convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype)) for i in xrange(len(r))])
+	g=np.transpose([convolution2Vectors(mask,createAuxVector(mask,g[i],bordertype)) for i in xrange(len(g))])
+	b=np.transpose([convolution2Vectors(mask,createAuxVector(mask,b[i],bordertype)) for i in xrange(len(b))])
 
-#Comentar a partir de aqui para ver la diferencia entre solo horizontal y vertical tambien
-	if(not only_horizontal):
-	 	r=np.transpose(r)
-	 	g=np.transpose(g)
-	 	b=np.transpose(b)
-
-	   	for i in xrange(len(r)):
-  			r[i]=convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype))
-  			g[i]=convolution2Vectors(mask,createAuxVector(mask,g[i],bordertype))
-  			b[i]=convolution2Vectors(mask,createAuxVector(mask,b[i],bordertype))
-	 
-   		r=np.transpose(r)
-   		g=np.transpose(g)
-   		b=np.transpose(b)
+	r=np.transpose([convolution2Vectors(mask,createAuxVector(mask,r[i],bordertype)) for i in xrange(len(r))])
+	g=np.transpose([convolution2Vectors(mask,createAuxVector(mask,g[i],bordertype)) for i in xrange(len(g))])
+	b=np.transpose([convolution2Vectors(mask,createAuxVector(mask,b[i],bordertype)) for i in xrange(len(b))])
 #Fin de comentarios
 	#Regresamos al modo CV_8UC3 (ENTERO)
 	r=np.uint8(r)
